@@ -1,0 +1,97 @@
+gitlabUrl: "https://gitlab.com/"
+runnerRegistrationToken: "GR1348941_NRt1vdy_AmpZScDxfH5"
+
+## Updating the runner's chart version or configuration will cause the runner container
+## to be terminated and created again. This may cause your Gitlab instance to reference
+## non-existant runners. Un-registering the runner before termination mitigates this issue.
+## ref: https://docs.gitlab.com/runner/commands/index.html#gitlab-runner-unregister
+unregisterRunners: true
+logLevel: info
+imagePullPolicy: IfNotPresent
+
+## Configure integrated Prometheus metrics exporter
+## ref: https://docs.gitlab.com/runner/monitoring/#configuration-of-the-metrics-http-server
+metrics:
+  enabled: true
+
+# number of concurrent jobs to run
+concurrent: 100
+
+## Defines in seconds how often to check GitLab for a new builds
+## ref: https://docs.gitlab.com/runner/configuration/advanced-configuration.html#the-global-section
+##
+checkInterval: 3
+
+
+rbac:
+  create: true
+
+runners:
+  privileged: true
+  secret: gitlab-runner-secret
+  tags: "gitlab-runner, kubernetes"
+  cache:
+    secretName: google-application-credentials
+
+# gcs cache reference: https://docs.gitlab.com/runner/install/kubernetes.html#static-credentials-directly-configured
+# Anti-affinity rule reference: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27330
+# node selector + toleration ref: https://docs.gitlab.com/runner/executors/kubernetes.html#configuration-example
+# Job failed (system failure): timed out waiting for pod to start : To fix this issue, increase the poll_timeout value
+
+  config: |
+    [[runners]]
+      name = "runner"
+      executor = "kubernetes"
+      [runners.cache]
+        Type = "gcs"
+        Path = "runner"
+        Shared = true
+        [runners.cache.gcs]
+          BucketName = "gitlab-runners-build-cache"
+      [runners.feature_flags]
+        FF_USE_FASTZIP  = true
+      [runners.kubernetes]
+        image = "ubuntu:22.04"
+        privileged  = true
+        pull_policy = "if-not-present"
+        namespace = "gitlab-runner"
+        cpu_request = "500m"
+        memory_request = "512Mi"
+        service_cpu_request = "500m"
+        service_memory_request = "512Mi"
+        helper_cpu_request = "500m"
+        helper_memory_request = "512Mi"
+        poll_interval = 5
+        poll_timeout = 3600
+        [runners.kubernetes.node_selector]
+          "cloud.google.com/gke-spot" = "true"
+        [runners.kubernetes.node_tolerations]
+          "gitlab-runner=true"  = "NoSchedule"
+        [runners.kubernetes.pod_labels]
+          app = "gitlab-runner"
+        [runners.kubernetes.affinity]
+          [[runners.kubernetes.affinity.pod_anti_affinity.preferred_during_scheduling_ignored_during_execution]]
+          weight = 100
+          [runners.kubernetes.affinity.pod_anti_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term]
+              topology_key = "kubernetes.io/hostname" 
+            [runners.kubernetes.affinity.pod_anti_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term.label_selector]
+              [[runners.kubernetes.affinity.pod_anti_affinity.preferred_during_scheduling_ignored_during_execution.pod_affinity_term.label_selector.match_expressions]]
+                key = "app"
+                operator = "In"
+                values = ["gitlab-runner"]
+
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "200m"
+
+nodeSelector:
+  "cloud.google.com/gke-nodepool": "play-kube-cluster-main-node-pool"
+
+# secret for registering gitlab-runner to gitlab
+secrets:
+  - name: google-application-credentials
+
+podLabels:
+  meta.helm.sh/release-namespace: gitlab-runner
+  app.kubernetes.io/managed-by: Helm
