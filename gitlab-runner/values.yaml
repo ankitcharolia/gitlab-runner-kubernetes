@@ -64,7 +64,7 @@ runners:
         poll_interval = 5
         poll_timeout = 3600
         [runners.kubernetes.node_selector]
-          "cloud.google.com/gke-spot" = "true"
+          "gitlab-runner-nodepool" = "true"
         [runners.kubernetes.node_tolerations]
           "gitlab-runner=true"  = "NoSchedule"
         [runners.kubernetes.pod_labels]
@@ -86,7 +86,13 @@ resources:
     cpu: "200m"
 
 nodeSelector:
-  "cloud.google.com/gke-nodepool": "play-kube-cluster-main-node-pool"
+  "gitlab-runner-nodepool": "true"
+
+tolerations:
+  - key: "gitlab-runner"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
 
 # secret for registering gitlab-runner to gitlab
 secrets:
