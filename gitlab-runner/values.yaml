@@ -27,17 +27,19 @@ rbac:
   create: true
 
 runners:
-  privileged: true
-  secret: gitlab-runner-secret
+  privileged: false
+  # secret: gitlab-runner-secret
   tags: "gitlab-runner, kubernetes"
-  cache:
-    secretName: google-application-credentials
+  # cache:
+  #   secretName: google-application-credentials
 
 # gcs cache reference: https://docs.gitlab.com/runner/install/kubernetes.html#static-credentials-directly-configured
 # Anti-affinity rule reference: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27330
 # node selector + toleration ref: https://docs.gitlab.com/runner/executors/kubernetes.html#configuration-example
 # Job failed (system failure): timed out waiting for pod to start : To fix this issue, increase the poll_timeout value
 
+# GITLAB-RUNNER GCS CACHE: https://gitlab.com/gitlab-org/gitlab-runner/-/blob/e89d1c6b5f77bc9604f1569ddf2ce573c440e29d/docs/install/kubernetes.md#google-cloud-storage-gcs
+# this example is using gke workload-identity. look at the other options in above link.
   config: |
     [[runners]]
       name = "runner"
@@ -45,7 +47,7 @@ runners:
       [runners.cache]
         Type = "gcs"
         Path = "runner"
-        Shared = true
+        Shared = false
         [runners.cache.gcs]
           BucketName = "gitlab-runners-build-cache"
       [runners.feature_flags]
@@ -95,8 +97,8 @@ tolerations:
     effect: "NoSchedule"
 
 # secret for registering gitlab-runner to gitlab
-secrets:
-  - name: google-application-credentials
+# secrets:
+#   - name: google-application-credentials
 
 podLabels:
   meta.helm.sh/release-namespace: gitlab-runner
