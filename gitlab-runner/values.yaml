@@ -1,5 +1,5 @@
 gitlabUrl: "https://gitlab.com/"
-runnerRegistrationToken: "GR1348941_NRt1vdy_AmpZScDxfH5"
+runnerToken: "GR1348941_NRt1vdy_AmpZScDxfH5"
 
 ## Updating the runner's chart version or configuration will cause the runner container
 ## to be terminated and created again. This may cause your Gitlab instance to reference
